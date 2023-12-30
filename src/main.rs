@@ -1,28 +1,43 @@
 use actix_web::{web, App, HttpServer};
-use std::sync::Mutex;
+use influxdb::Client;
+use std::sync::Arc;
 use tokio::signal;
 
-use crate::domain::aggregates::metrics::{AppMetrics, Metrics};
-use crate::infrastructure::http::handlers::capture::capture_endpoint;
-use crate::infrastructure::http::handlers::metrics::metrics_endpoint;
+use crate::config::Config;
+use crate::domain::services::events_creator::EventsCreator;
+use crate::infrastructure::http::handlers::capture::CaptureEndpoint;
+use crate::infrastructure::repositories::influx::InfluxRepository;
 
+mod config;
 mod domain;
 mod infrastructure;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let metrics = Metrics::new();
-    let state = web::Data::new(AppMetrics {
-        metrics: Mutex::new(metrics),
-    });
+    dotenv::dotenv().ok();
+
+    let cfg = Config::new().expect("Failed to load config");
+
+    println!("Starting server with influxdb in : {:?}", cfg.influxdb_url);
+
+    let influx_repository = InfluxRepository::new(
+        Client::new(cfg.influxdb_url, cfg.influxdb_db).with_token(cfg.influxdb_token),
+    );
+
+    let capture_endpoint = CaptureEndpoint::new(EventsCreator::new(influx_repository));
+    let capture_endpoint = Arc::new(capture_endpoint);
 
     let server = HttpServer::new(move || {
-        App::new()
-            .app_data(state.clone())
-            .route("/capture", web::post().to(capture_endpoint))
-            .route("/metrics", web::get().to(metrics_endpoint))
+        let capture_endpoint_clone = Arc::clone(&capture_endpoint);
+        App::new().route(
+            "/capture",
+            web::post().to(move |http_event| {
+                let capture_endpoint = capture_endpoint_clone.clone();
+                async move { capture_endpoint.endpoint(http_event).await }
+            }),
+        )
     })
-    .bind("127.0.0.1:3000")?
+    .bind("0.0.0.0:3000")?
     .run();
 
     let server_handle = server.handle();
