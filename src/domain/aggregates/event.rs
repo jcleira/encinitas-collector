@@ -1,40 +1,42 @@
 pub struct EventData {
-    pub event_type: String,
-    pub request: String,
+    pub id: String,
     pub client_id: String,
-    pub preload_response: Option<String>,
+    pub handled: serde_json::Value,
+    pub replaces_client_id: Option<String>,
     pub resulting_client_id: String,
-    pub replaces_client_id: String,
 }
 
 pub struct RequestData {
-    pub url: String,
-    pub method: String,
     pub body: Option<String>,
+    pub body_used: bool,
+    pub cache: String,
+    pub credentials: String,
+    pub destination: String,
+    pub headers: serde_json::Value,
+    pub integrity: String,
+    pub method: String,
+    pub mode: String,
+    pub redirect: String,
     pub referrer: String,
     pub referrer_policy: String,
-    pub mode: String,
-    pub credentials: String,
-    pub cache: String,
-    pub redirect: String,
-    pub integrity: String,
-    pub keepalive: bool,
-    pub signal: Option<String>,
+    pub url: String,
+    pub signal: serde_json::Value,
 }
 
 pub struct ResponseData {
-    pub url: String,
-    pub response_type: String,
-    pub status: u16,
-    pub ok: bool,
-    pub status_text: String,
     pub body: Option<String>,
-    pub redirected: bool,
     pub body_used: bool,
+    pub headers: serde_json::Value,
+    pub ok: bool,
+    pub redirected: bool,
+    pub status: u16,
+    pub status_text: String,
+    pub response_type: String,
+    pub url: String,
 }
 
 pub struct Event {
     pub event: EventData,
-    pub request: RequestData,
-    pub response: ResponseData,
+    pub request: Option<RequestData>,
+    pub response: Option<ResponseData>,
 }
