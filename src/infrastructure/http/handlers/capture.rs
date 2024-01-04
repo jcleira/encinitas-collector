@@ -15,6 +15,7 @@ impl CaptureEndpoint {
     }
 
     pub async fn endpoint(&self, http_event: web::Json<HTTPEvent>) -> impl Responder {
+        println!("http event: {:?}", http_event);
         let event = http_event.to_aggregate();
         let _ = self.events_creator.create(&event).await.map_err(|e| {
             println!("failed to create event: {}", e);
@@ -27,89 +28,97 @@ impl CaptureEndpoint {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct HTTPEventData {
-    #[serde(rename = "type")]
-    event_type: String,
-    request: String,
+    id: String,
+    #[serde(rename = "clientId")]
     client_id: String,
-    preload_response: Option<String>,
+    handled: serde_json::Value,
+    #[serde(rename = "replacesClientId")]
+    replaces_client_id: Option<String>,
+    #[serde(rename = "resultingClientId")]
     resulting_client_id: String,
-    replaces_client_id: String,
 }
 
 impl HTTPEventData {
     pub fn to_aggregate(&self) -> EventData {
         EventData {
-            event_type: self.event_type.clone(),
-            request: self.request.clone(),
+            id: self.id.clone(),
             client_id: self.client_id.clone(),
-            preload_response: self.preload_response.clone(),
-            resulting_client_id: self.resulting_client_id.clone(),
+            handled: self.handled.clone(),
             replaces_client_id: self.replaces_client_id.clone(),
+            resulting_client_id: self.resulting_client_id.clone(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct HTTPRequestData {
-    url: String,
-    method: String,
-    headers: serde_json::Value,
     body: Option<String>,
-    referrer: String,
-    referrer_policy: String,
-    mode: String,
-    credentials: String,
+    #[serde(rename = "bodyUsed")]
+    body_used: bool,
     cache: String,
-    redirect: String,
+    credentials: String,
+    destination: String,
+    headers: serde_json::Value,
     integrity: String,
-    keepalive: bool,
-    signal: Option<String>,
+    method: String,
+    mode: String,
+    redirect: String,
+    referrer: String,
+    #[serde(rename = "referrerPolicy")]
+    referrer_policy: String,
+    signal: serde_json::Value,
+    url: String,
 }
 
 impl HTTPRequestData {
     pub fn to_aggregate(&self) -> RequestData {
         RequestData {
-            url: self.url.clone(),
-            method: self.method.clone(),
             body: self.body.clone(),
+            body_used: self.body_used.clone(),
+            cache: self.cache.clone(),
+            credentials: self.credentials.clone(),
+            destination: self.destination.clone(),
+            headers: self.headers.clone(),
+            integrity: self.integrity.clone(),
+            method: self.method.clone(),
+            mode: self.mode.clone(),
+            redirect: self.redirect.clone(),
             referrer: self.referrer.clone(),
             referrer_policy: self.referrer_policy.clone(),
-            mode: self.mode.clone(),
-            credentials: self.credentials.clone(),
-            cache: self.cache.clone(),
-            redirect: self.redirect.clone(),
-            integrity: self.integrity.clone(),
-            keepalive: self.keepalive,
             signal: self.signal.clone(),
+            url: self.url.clone(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct HTTPResponseData {
-    url: String,
+    body: Option<String>,
+    #[serde(rename = "bodyUsed")]
+    body_used: bool,
+    headers: serde_json::Value,
+    ok: bool,
+    redirected: bool,
+    status: u16,
+    #[serde(rename = "statusText")]
+    status_text: String,
     #[serde(rename = "type")]
     response_type: String,
-    status: u16,
-    ok: bool,
-    status_text: String,
-    headers: serde_json::Value,
-    body: Option<String>,
-    redirected: bool,
-    body_used: bool,
+    url: String,
 }
 
 impl HTTPResponseData {
     pub fn to_aggregate(&self) -> ResponseData {
         ResponseData {
-            url: self.url.clone(),
-            response_type: self.response_type.clone(),
-            status: self.status,
-            ok: self.ok,
-            status_text: self.status_text.clone(),
             body: self.body.clone(),
+            body_used: self.body_used.clone(),
+            headers: self.headers.clone(),
+            ok: self.ok,
             redirected: self.redirected,
-            body_used: self.body_used,
+            status: self.status.clone(),
+            status_text: self.status_text.clone(),
+            response_type: self.response_type.clone(),
+            url: self.url.clone(),
         }
     }
 }
@@ -117,16 +126,16 @@ impl HTTPResponseData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HTTPEvent {
     event: HTTPEventData,
-    request: HTTPRequestData,
-    response: HTTPResponseData,
+    request: Option<HTTPRequestData>,
+    response: Option<HTTPResponseData>,
 }
 
 impl HTTPEvent {
     pub fn to_aggregate(&self) -> Event {
         Event {
             event: self.event.to_aggregate(),
-            request: self.request.to_aggregate(),
-            response: self.response.to_aggregate(),
+            request: self.request.as_ref().map(|req| req.to_aggregate()), // Transforms to Option<RequestData>
+            response: self.response.as_ref().map(|res| res.to_aggregate()), // Handling Option
         }
     }
 }
