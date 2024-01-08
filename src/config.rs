@@ -7,6 +7,7 @@ pub struct Config {
     pub influxdb_db: String,
     pub influxdb_token: String,
     pub database_url: String,
+    pub redis_url: String,
 }
 
 impl Config {
@@ -17,6 +18,7 @@ impl Config {
             influxdb_db: env::var("INFLUXDB_DB").unwrap_or_else(|_| "encinitas".to_string()),
             influxdb_token: env::var("INFLUXDB_TOKEN").unwrap_or_else(|_| "".to_string()),
             database_url: env::var("DATABASE_URL").unwrap_or_else(|_| "localhost".to_string()),
+            redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost".to_string()),
         })
     }
 }

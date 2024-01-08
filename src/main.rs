@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::domain::services::events_creator::EventsCreator;
 use crate::infrastructure::http::handlers::capture::CaptureEndpoint;
 use crate::infrastructure::repositories::influx::InfluxRepository;
+use crate::infrastructure::repositories::redis::RedisRepository;
 use crate::infrastructure::repositories::sql::PostgresRepository;
 
 mod config;
@@ -28,8 +29,13 @@ async fn main() -> std::io::Result<()> {
 
     let postgres_repository = PostgresRepository::new(&cfg.database_url);
 
-    let capture_endpoint =
-        CaptureEndpoint::new(EventsCreator::new(influx_repository, postgres_repository));
+    let redis_repository = RedisRepository::new(&cfg.redis_url);
+
+    let capture_endpoint = CaptureEndpoint::new(EventsCreator::new(
+        influx_repository,
+        postgres_repository,
+        redis_repository,
+    ));
     let capture_endpoint = Arc::new(capture_endpoint);
 
     let server = HttpServer::new(move || {

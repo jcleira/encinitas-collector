@@ -17,3 +17,5 @@ diesel = { version = "2.1.4", features = ["postgres", "serde_json", "r2d2", "uui
 r2d2 = "0.8.10"
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 actix-cors = "0.6.5"
+redis = "0.24.0"
+r2d2_redis = "0.14.0"

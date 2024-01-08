@@ -22,7 +22,6 @@ impl PostgresRepository {
         Self { pool }
     }
 
-    // Example of a method using the pool
     pub fn get_connection(
         &self,
     ) -> Result<PooledConnection<ConnectionManager<PgConnection>>, r2d2::Error> {

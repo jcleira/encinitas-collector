@@ -1,9 +1,19 @@
+use serde::Serialize;
+use serde_json;
+
+#[derive(Serialize)]
 pub struct EventData {
     pub id: String,
     pub client_id: String,
     pub handled: serde_json::Value,
     pub replaces_client_id: Option<String>,
     pub resulting_client_id: String,
+}
+
+impl EventData {
+    pub fn to_json(&self) -> serde_json::Result<String> {
+        serde_json::to_string(self)
+    }
 }
 
 pub struct RequestData {
