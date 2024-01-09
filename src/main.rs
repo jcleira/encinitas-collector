@@ -38,6 +38,13 @@ async fn main() -> std::io::Result<()> {
     ));
     let capture_endpoint = Arc::new(capture_endpoint);
 
+    let event_consumer = tokio::spawn(async {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            println!("Consumer task doing work...");
+        }
+    });
+
     let server = HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
@@ -62,6 +69,9 @@ async fn main() -> std::io::Result<()> {
     tokio::select! {
         _ = server => {
             println!("Server stopped");
+        }
+        _ = event_consumer => {
+            println!("Consumer task completed or stopped");
         }
         _ = signal::ctrl_c() => {
             println!("Ctrl-C received, stopping server...");

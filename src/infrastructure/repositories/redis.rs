@@ -1,7 +1,7 @@
 use std::error::Error;
+use std::ops::DerefMut;
 
-use r2d2_redis::{r2d2, RedisConnectionManager};
-
+use r2d2_redis::{r2d2, redis, RedisConnectionManager};
 use serde::Serialize;
 use serde_json;
 
@@ -21,19 +21,20 @@ impl RedisRepository {
         let json_message = serde_json::to_string(message)?;
         let mut conn = self.pool.get()?;
 
-        conn.set("foo", "bar").unwrap();
-
-        let n: i64 = conn.incr("counter", 1).unwrap();
-
-        let reply = redis::cmd("PING")
-            .query::<String>(conn.deref_mut())
-            .unwrap();
-
         redis::cmd("PUBLISH")
             .arg(channel)
             .arg(&json_message)
             .query(conn.deref_mut())?;
 
         Ok(())
+    }
+
+    async fn subscribe(&self, channel: &str) -> Result<&redis::PubSub, Box<dyn Error>> {
+        let mut conn = self.pool.get()?;
+
+        let mut pubsub: redis::PubSub = conn.as_pubsub();
+        pubsub.subscribe(channel)?;
+
+        return Ok(&pubsub);
     }
 }

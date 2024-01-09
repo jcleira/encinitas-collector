@@ -25,7 +25,7 @@ impl EventsCreator {
     }
 
     pub async fn create(&self, event: &Event) -> Result<(), Box<dyn Error>> {
-        self.influx_repository.create(event).await;
+        self.influx_repository.create(event).await?;
 
         self.postgres_repository.create_event(event)?;
         if event.request.is_some() {
@@ -36,7 +36,7 @@ impl EventsCreator {
         }
 
         self.redis_repository
-            .publish("events", &event.event.to_json())?;
+            .publish("events", &event.event.to_json()?)?;
 
         Ok(())
     }
