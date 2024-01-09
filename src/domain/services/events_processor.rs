@@ -13,6 +13,8 @@ impl EventsProcessor {
     }
 
     pub fn process(&self, event: Event) -> Result<(), Box<dyn Error>> {
-        match event {}
+        match event {
+            _ => todo!(),
+        }
     }
 }

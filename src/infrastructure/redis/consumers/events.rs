@@ -9,13 +9,16 @@ impl EventsConsumer {
         Self { redis_repository }
     }
 
-    pub async fn consume(&self) -> Result<(), Box<dyn Error>> {
-        let pubsub = self.redis_repository.subscribe("events")?;
-
-        loop {
-            let msg = pubsub.get_message()?;
+    pub async fn consume(&self) {
+        match self.redis_repository.subscribe("events") {
+            Ok(mut rx) => {
+                while let Some(message) = rx.recv().await {
+                    println!("Received message: {}", message);
+                }
+            }
+            Err(e) => {
+                eprintln!("Error subscribing to channel: {}", e);
+            }
         }
-
-        Ok(())
     }
 }

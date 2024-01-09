@@ -7,6 +7,8 @@ use tokio::signal;
 use crate::config::Config;
 use crate::domain::services::events_creator::EventsCreator;
 use crate::infrastructure::http::handlers::capture::CaptureEndpoint;
+use crate::infrastructure::redis::consumers::events::EventsConsumer;
+use crate::infrastructure::redis::producers::events::EventsProducer;
 use crate::infrastructure::repositories::influx::InfluxRepository;
 use crate::infrastructure::repositories::redis::RedisRepository;
 use crate::infrastructure::repositories::sql::PostgresRepository;
@@ -29,20 +31,18 @@ async fn main() -> std::io::Result<()> {
 
     let postgres_repository = PostgresRepository::new(&cfg.database_url);
 
-    let redis_repository = RedisRepository::new(&cfg.redis_url);
+    let events_producer = EventsProducer::new(RedisRepository::new(&cfg.redis_url));
 
     let capture_endpoint = CaptureEndpoint::new(EventsCreator::new(
         influx_repository,
         postgres_repository,
-        redis_repository,
+        events_producer,
     ));
     let capture_endpoint = Arc::new(capture_endpoint);
 
-    let event_consumer = tokio::spawn(async {
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            println!("Consumer task doing work...");
-        }
+    let events_consumer = tokio::spawn(move {
+        EventsConsumer::new(RedisRepository::new(&cfg.redis_url))
+            .consume()
     });
 
     let server = HttpServer::new(move || {
@@ -70,7 +70,7 @@ async fn main() -> std::io::Result<()> {
         _ = server => {
             println!("Server stopped");
         }
-        _ = event_consumer => {
+        _ = events_consumer => {
             println!("Consumer task completed or stopped");
         }
         _ = signal::ctrl_c() => {

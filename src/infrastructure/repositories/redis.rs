@@ -4,6 +4,7 @@ use std::ops::DerefMut;
 use r2d2_redis::{r2d2, redis, RedisConnectionManager};
 use serde::Serialize;
 use serde_json;
+use tokio::sync::mpsc;
 
 pub struct RedisRepository {
     pool: r2d2::Pool<RedisConnectionManager>,
@@ -29,12 +30,35 @@ impl RedisRepository {
         Ok(())
     }
 
-    async fn subscribe(&self, channel: &str) -> Result<&redis::PubSub, Box<dyn Error>> {
-        let mut conn = self.pool.get()?;
+    pub fn subscribe(&self, channel: &str) -> Result<mpsc::Receiver<String>, Box<dyn Error>> {
+        let channel = channel.to_string();
+        let pool = self.pool.clone();
+        let (tx, rx) = mpsc::channel(100);
 
-        let mut pubsub: redis::PubSub = conn.as_pubsub();
-        pubsub.subscribe(channel)?;
+        tokio::spawn(async move {
+            let mut conn = match pool.get() {
+                Ok(conn) => conn,
+                Err(_) => return,
+            };
 
-        return Ok(&pubsub);
+            let mut pubsub = conn.as_pubsub();
+            if let Err(_) = pubsub.subscribe(channel) {
+                return;
+            }
+
+            loop {
+                match pubsub.get_message() {
+                    Ok(message) => {
+                        let payload: String = message.get_payload().unwrap_or_default();
+                        if tx.send(payload).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+
+        Ok(rx)
     }
 }
