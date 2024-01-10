@@ -6,6 +6,7 @@ use tokio::signal;
 
 use crate::config::Config;
 use crate::domain::services::events_creator::EventsCreator;
+use crate::domain::services::events_processor::EventsProcessor;
 use crate::infrastructure::http::handlers::capture::CaptureEndpoint;
 use crate::infrastructure::redis::consumers::events::EventsConsumer;
 use crate::infrastructure::redis::producers::events::EventsProducer;
@@ -41,8 +42,16 @@ async fn main() -> std::io::Result<()> {
     let capture_endpoint = Arc::new(capture_endpoint);
 
     let events_consumer_redis_url = cfg.redis_url.clone();
-    let events_consumer = tokio::spawn(move || {
-        block_on(EventsConsumer::new(RedisRepository::new(&events_consumer_redis_url)).consume())
+    let events_consumer_postgres_url = cfg.database_url.clone();
+    let events_consumer = tokio::spawn(async move {
+        EventsConsumer::new(
+            RedisRepository::new(&events_consumer_redis_url),
+            EventsProcessor::new(PostgresRepository::new(
+                events_consumer_postgres_url.as_str(),
+            )),
+        )
+        .consume()
+        .await
     });
 
     let server = HttpServer::new(move || {

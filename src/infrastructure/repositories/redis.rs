@@ -30,7 +30,7 @@ impl RedisRepository {
         Ok(())
     }
 
-    pub fn subscribe(&self, channel: &str) -> Result<mpsc::Receiver<String>, Box<dyn Error>> {
+    pub fn subscribe(&self, channel: &str) -> mpsc::Receiver<String> {
         let channel = channel.to_string();
         let pool = self.pool.clone();
         let (tx, rx) = mpsc::channel(100);
@@ -59,6 +59,6 @@ impl RedisRepository {
             }
         });
 
-        Ok(rx)
+        rx
     }
 }

@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::domain::aggregates::event::EventData;
 use crate::infrastructure::repositories::redis::RedisRepository;
@@ -15,7 +15,7 @@ impl EventsProducer {
     }
 
     pub fn produce(&self, event_type: &str, event: &EventData) -> Result<(), Box<dyn Error>> {
-        let redis_event = redis_event_from_aggregate(event, event_type);
+        let redis_event = RedisEvent::from_aggregate(event, event_type);
 
         self.redis_repository.publish("events", &redis_event)?;
 
@@ -23,21 +23,33 @@ impl EventsProducer {
     }
 }
 
-#[derive(Serialize)]
-struct RedisEvent {
+#[derive(Serialize, Deserialize)]
+pub struct RedisEvent {
+    pub id: String,
     pub client_id: String,
     pub event_type: String,
+    pub replaces_client_id: Option<String>,
+    pub resulting_client_id: String,
 }
 
 impl RedisEvent {
-    pub fn to_json(&self) -> serde_json::Result<String> {
-        serde_json::to_string(self)
+    pub fn to_aggregate(&self) -> EventData {
+        EventData {
+            id: self.id.to_string(),
+            client_id: self.client_id.to_string(),
+            handled: serde_json::Value::Bool(false),
+            replaces_client_id: self.replaces_client_id.to_owned(),
+            resulting_client_id: self.resulting_client_id.to_owned(),
+        }
     }
-}
 
-fn redis_event_from_aggregate(event: &EventData, event_type: &str) -> RedisEvent {
-    RedisEvent {
-        client_id: event.client_id.to_string(),
-        event_type: event_type.to_string(),
+    pub fn from_aggregate(event: &EventData, event_type: &str) -> Self {
+        Self {
+            event_type: event_type.to_string(),
+            id: event.id.to_string(),
+            client_id: event.client_id.to_string(),
+            replaces_client_id: event.replaces_client_id.to_owned(),
+            resulting_client_id: event.resulting_client_id.to_owned(),
+        }
     }
 }
