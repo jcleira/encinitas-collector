@@ -40,9 +40,11 @@ async fn main() -> std::io::Result<()> {
     ));
     let capture_endpoint = Arc::new(capture_endpoint);
 
-    let events_consumer = tokio::spawn(move {
-        EventsConsumer::new(RedisRepository::new(&cfg.redis_url))
+    let events_consumer_redis_url = cfg.redis_url.clone();
+    let events_consumer = tokio::spawn(async move {
+        EventsConsumer::new(RedisRepository::new(&events_consumer_redis_url))
             .consume()
+            .await
     });
 
     let server = HttpServer::new(move || {
