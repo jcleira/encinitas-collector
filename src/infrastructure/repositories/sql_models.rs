@@ -1,10 +1,11 @@
 use diesel::insertable::Insertable;
+use diesel::Queryable;
 use diesel::{allow_tables_to_appear_in_same_query, joinable, table};
 use uuid::Uuid;
 
 use crate::domain::aggregates::event::{Event, Request, Response};
 
-#[derive(Insertable)]
+#[derive(Insertable, Queryable)]
 #[table_name = "events"]
 pub struct DBEvent {
     pub id: Uuid,
@@ -18,7 +19,8 @@ pub struct DBEvent {
 impl DBEvent {
     pub fn to_aggregate(&self) -> Event {
         Event {
-            id: self.browser_id.to_string(),
+            id: self.id,
+            browser_id: self.browser_id.to_string(),
             client_id: self.client_id.to_string(),
             handled: serde_json::Value::Null,
             replaces_client_id: self.replaces_client_id.to_owned(),

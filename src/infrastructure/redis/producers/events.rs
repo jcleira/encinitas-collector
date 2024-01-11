@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::domain::aggregates::event::Event;
 use crate::infrastructure::repositories::redis::RedisRepository;
@@ -26,6 +27,7 @@ impl EventsProducer {
 #[derive(Serialize, Deserialize)]
 pub struct RedisEvent {
     pub id: String,
+    pub browser_id: String,
     pub client_id: String,
     pub event_type: String,
     pub replaces_client_id: Option<String>,
@@ -35,7 +37,8 @@ pub struct RedisEvent {
 impl RedisEvent {
     pub fn to_aggregate(&self) -> Event {
         Event {
-            id: self.id.to_string(),
+            id: Uuid::parse_str(&self.id).unwrap(),
+            browser_id: self.browser_id.to_string(),
             client_id: self.client_id.to_string(),
             handled: serde_json::Value::Null,
             replaces_client_id: self.replaces_client_id.to_owned(),
@@ -49,6 +52,7 @@ impl RedisEvent {
         Self {
             event_type: event_type.to_string(),
             id: event.id.to_string(),
+            browser_id: event.browser_id.to_string(),
             client_id: event.client_id.to_string(),
             replaces_client_id: event.replaces_client_id.to_owned(),
             resulting_client_id: event.resulting_client_id.to_owned(),

@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
+use uuid::Uuid;
 
 use crate::domain::aggregates::event::Event;
 use crate::infrastructure::repositories::sql_models::{
@@ -50,15 +51,14 @@ impl PostgresRepository {
             .execute(&mut conn)
     }
 
-    pub fn get_event(&self, event_id: &str) -> QueryResult<Event> {
+    pub fn get_event(&self, id: &str) -> QueryResult<Event> {
         let mut conn = self.get_connection().expect("Failed to get connection");
-        // Assuming `events::id` is the correct field and `DBEvent` is your Diesel model
+        let event_id = Uuid::parse_str(id).map_err(|_| diesel::result::Error::NotFound)?;
+
         events::table
             .filter(events::id.eq(event_id))
             .first::<DBEvent>(&mut conn)
-            // Assuming `to_aggregate` converts a `DBEvent` to your domain `Event`
             .map(|db_event| db_event.to_aggregate())
-            // Handle possible conversion errors
             .map_err(|e| e.into())
     }
 }

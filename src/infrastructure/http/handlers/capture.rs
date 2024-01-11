@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use uuid::Uuid;
 
 use crate::domain::aggregates::event::{Event, Request, Response};
 use crate::domain::services::events_creator::EventsCreator;
@@ -43,7 +44,8 @@ pub struct HTTPEvent {
 impl HTTPEvent {
     pub fn to_aggregate(&self) -> Event {
         Event {
-            id: self.id.clone(),
+            id: Uuid::new_v4(),
+            browser_id: self.id.clone(),
             client_id: self.client_id.clone(),
             handled: self.handled.clone(),
             replaces_client_id: self.replaces_client_id.clone(),

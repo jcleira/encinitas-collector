@@ -17,7 +17,7 @@ impl InfluxRepository {
 
         let mut query = WriteQuery::new(timestamp, "event");
         query = query
-            .add_field("id", event.id.clone())
+            .add_field("id", event.id.to_string())
             .add_field("client_id", event.client_id.clone())
             .add_field("replaces_client_id", event.replaces_client_id.clone())
             .add_field("resulting_client_id", event.resulting_client_id.clone());

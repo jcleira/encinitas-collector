@@ -1,4 +1,5 @@
 use serde_json;
+use uuid::Uuid;
 
 // Event is the aggregate root, is the representation of an event coming from
 // the browser.
@@ -7,7 +8,8 @@ use serde_json;
 // itself. The service worker in the frontend send an event to the backend for
 // the request and then waits for the response.
 pub struct Event {
-    pub id: String,
+    pub id: Uuid,
+    pub browser_id: String,
     pub client_id: String,
     pub handled: serde_json::Value,
     pub replaces_client_id: Option<String>,
