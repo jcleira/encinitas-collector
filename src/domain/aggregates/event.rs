@@ -1,14 +1,22 @@
 use serde_json;
 
-pub struct EventData {
+// Event is the aggregate root, is the representation of an event coming from
+// the browser.
+//
+// The event is composed of a request or a response, and the event information
+// itself. The service worker in the frontend send an event to the backend for
+// the request and then waits for the response.
+pub struct Event {
     pub id: String,
     pub client_id: String,
     pub handled: serde_json::Value,
     pub replaces_client_id: Option<String>,
     pub resulting_client_id: String,
+    pub request: Option<Request>,
+    pub response: Option<Response>,
 }
 
-pub struct RequestData {
+pub struct Request {
     pub body: Option<String>,
     pub body_used: bool,
     pub cache: String,
@@ -25,7 +33,7 @@ pub struct RequestData {
     pub signal: serde_json::Value,
 }
 
-pub struct ResponseData {
+pub struct Response {
     pub body: Option<String>,
     pub body_used: bool,
     pub headers: serde_json::Value,
@@ -35,10 +43,4 @@ pub struct ResponseData {
     pub status_text: String,
     pub response_type: String,
     pub url: String,
-}
-
-pub struct Event {
-    pub event: EventData,
-    pub request: Option<RequestData>,
-    pub response: Option<ResponseData>,
 }

@@ -35,7 +35,7 @@ impl EventsCreator {
             self.postgres_repository.create_response(event)?;
         }
 
-        self.events_producer.produce("created", &event.event)?;
+        self.events_producer.produce("created", &event)?;
 
         Ok(())
     }

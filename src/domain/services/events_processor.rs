@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::domain::aggregates::event::EventData;
+use crate::domain::aggregates::event::Event;
 use crate::infrastructure::repositories::sql::PostgresRepository;
 
 pub struct EventsProcessor {
@@ -12,7 +12,7 @@ impl EventsProcessor {
         Self { repository }
     }
 
-    pub fn process(&self, event: EventData) -> Result<(), Box<dyn Error>> {
+    pub fn process(&self, event: Event) -> Result<(), Box<dyn Error>> {
         match event {
             _ => todo!(),
         }

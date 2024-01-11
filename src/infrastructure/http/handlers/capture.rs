@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::domain::aggregates::event::{Event, EventData, RequestData, ResponseData};
+use crate::domain::aggregates::event::{Event, Request, Response};
 use crate::domain::services::events_creator::EventsCreator;
 
 pub struct CaptureEndpoint {
@@ -27,7 +27,7 @@ impl CaptureEndpoint {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct HTTPEventData {
+pub struct HTTPEvent {
     id: String,
     #[serde(rename = "clientId")]
     client_id: String,
@@ -36,16 +36,20 @@ struct HTTPEventData {
     replaces_client_id: Option<String>,
     #[serde(rename = "resultingClientId")]
     resulting_client_id: String,
+    request: Option<HTTPRequestData>,
+    response: Option<HTTPResponseData>,
 }
 
-impl HTTPEventData {
-    pub fn to_aggregate(&self) -> EventData {
-        EventData {
+impl HTTPEvent {
+    pub fn to_aggregate(&self) -> Event {
+        Event {
             id: self.id.clone(),
             client_id: self.client_id.clone(),
             handled: self.handled.clone(),
             replaces_client_id: self.replaces_client_id.clone(),
             resulting_client_id: self.resulting_client_id.clone(),
+            request: self.request.as_ref().map(|req| req.to_aggregate()), // Transforms to Option<Request>
+            response: self.response.as_ref().map(|res| res.to_aggregate()), // Handling Option
         }
     }
 }
@@ -71,8 +75,8 @@ struct HTTPRequestData {
 }
 
 impl HTTPRequestData {
-    pub fn to_aggregate(&self) -> RequestData {
-        RequestData {
+    pub fn to_aggregate(&self) -> Request {
+        Request {
             body: self.body.clone(),
             body_used: self.body_used.clone(),
             cache: self.cache.clone(),
@@ -108,8 +112,8 @@ struct HTTPResponseData {
 }
 
 impl HTTPResponseData {
-    pub fn to_aggregate(&self) -> ResponseData {
-        ResponseData {
+    pub fn to_aggregate(&self) -> Response {
+        Response {
             body: self.body.clone(),
             body_used: self.body_used.clone(),
             headers: self.headers.clone(),
@@ -119,23 +123,6 @@ impl HTTPResponseData {
             status_text: self.status_text.clone(),
             response_type: self.response_type.clone(),
             url: self.url.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct HTTPEvent {
-    event: HTTPEventData,
-    request: Option<HTTPRequestData>,
-    response: Option<HTTPResponseData>,
-}
-
-impl HTTPEvent {
-    pub fn to_aggregate(&self) -> Event {
-        Event {
-            event: self.event.to_aggregate(),
-            request: self.request.as_ref().map(|req| req.to_aggregate()), // Transforms to Option<RequestData>
-            response: self.response.as_ref().map(|res| res.to_aggregate()), // Handling Option
         }
     }
 }
