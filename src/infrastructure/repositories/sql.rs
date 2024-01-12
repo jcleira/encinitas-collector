@@ -55,9 +55,9 @@ impl PostgresRepository {
         let mut conn = self.get_connection().expect("Failed to get connection");
         let event_id = Uuid::parse_str(id).map_err(|_| diesel::result::Error::NotFound)?;
 
-        events::table
-            .filter(events::id.eq(event_id))
-            .first::<DBEvent>(&mut conn)
+        let events = events
+            .find(event_id)
+            .first(conn)
             .map(|db_event| db_event.to_aggregate())
             .map_err(|e| e.into())
     }
